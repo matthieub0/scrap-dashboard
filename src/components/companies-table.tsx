@@ -120,7 +120,7 @@ export function CompanyList({
   officersBySiren: Record<string, Officer[]>;
 }) {
   const [search, setSearch] = useState("");
-  const [hideRestructuring, setHideRestructuring] = useState(true);
+  const [hideRestructuring, setHideRestructuring] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("score");
   const [sortAsc, setSortAsc] = useState(false);
 
