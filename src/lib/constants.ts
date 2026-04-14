@@ -64,6 +64,13 @@ export const NAF_LABELS: Record<string, string> = {
   "61.10Z": "Wired telecoms",
   "61.20Z": "Wireless telecoms",
   "61.90Z": "Other telecoms",
+  "64.20Z": "Holdings & investment vehicles",
+  "70.10Z": "Head offices",
+  "70.22Z": "Management consulting",
+  "73.11Z": "Advertising agencies",
+  "74.10Z": "Specialized design activities",
+  "74.90B": "Other professional/scientific activities",
+  "82.20Z": "Call center activities",
 };
 
 const currencyFmt = new Intl.NumberFormat("fr-FR", {
