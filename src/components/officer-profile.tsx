@@ -195,6 +195,7 @@ export function OfficerProfileView({
   const [generating, setGenerating] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
+  const [lookupResult, setLookupResult] = useState<"" | "found" | "not_found" | "error">("");
   const [editing, setEditing] = useState(false);
 
   const hasEnrichedData = !!(headline || currentPosition || experience.length || education.length);
@@ -272,6 +273,7 @@ export function OfficerProfileView({
 
   const lookupLinkedin = useCallback(async () => {
     setLookingUp(true);
+    setLookupResult("");
     try {
       const firstName = (officer.prenoms || "").split(",")[0].trim();
       const res = await fetch(`/api/officers/${officer.representant_id}/lookup`, {
@@ -284,8 +286,12 @@ export function OfficerProfileView({
         }),
       });
 
+      if (!res.ok) {
+        setLookupResult("error");
+        return;
+      }
+
       const data = await res.json();
-      if (!res.ok) return;
 
       if (data.linkedin_url) {
         setLinkedinUrl(data.linkedin_url);
@@ -293,6 +299,7 @@ export function OfficerProfileView({
         setCurrentPosition(data.current_position || currentPosition);
         if (data.education?.length) setEducation(data.education);
         if (data.experience?.length) setExperience(data.experience);
+        setLookupResult("found");
 
         const ok = await saveData({
           linkedin_url: data.linkedin_url,
@@ -302,7 +309,11 @@ export function OfficerProfileView({
           experience: data.experience?.length ? data.experience : experience,
         });
         if (ok) setSaved(true);
+      } else {
+        setLookupResult("not_found");
       }
+    } catch {
+      setLookupResult("error");
     } finally {
       setLookingUp(false);
     }
@@ -398,26 +409,34 @@ export function OfficerProfileView({
                   LinkedIn
                 </a>
               ) : !isCompany ? (
-                <button
-                  onClick={lookupLinkedin}
-                  disabled={lookingUp}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[#0077B5] text-white hover:bg-[#005582] transition-colors disabled:opacity-50"
-                >
-                  {lookingUp ? (
-                    <>
-                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Finding...
-                    </>
-                  ) : (
-                    <>
-                      <LinkedInIcon className="w-3 h-3" />
-                      Find LinkedIn
-                    </>
+                <>
+                  <button
+                    onClick={lookupLinkedin}
+                    disabled={lookingUp}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[#0077B5] text-white hover:bg-[#005582] transition-colors disabled:opacity-50"
+                  >
+                    {lookingUp ? (
+                      <>
+                        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Finding...
+                      </>
+                    ) : (
+                      <>
+                        <LinkedInIcon className="w-3 h-3" />
+                        Find LinkedIn
+                      </>
+                    )}
+                  </button>
+                  {lookupResult === "not_found" && (
+                    <span className="text-xs text-muted-foreground">Not found</span>
                   )}
-                </button>
+                  {lookupResult === "error" && (
+                    <span className="text-xs text-red-500">Lookup failed</span>
+                  )}
+                </>
               ) : null}
               {pappersUrl && (
                 <a
