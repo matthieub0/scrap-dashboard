@@ -194,6 +194,7 @@ export function OfficerProfileView({
   const [saved, setSaved] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
   const [editing, setEditing] = useState(false);
 
   const hasEnrichedData = !!(headline || currentPosition || experience.length || education.length);
@@ -268,6 +269,44 @@ export function OfficerProfileView({
       setEnriching(false);
     }
   }, [officer.role_entreprise, linkedinUrl, name, company.denomination_sirene, saveData, headline, currentPosition, education, experience]);
+
+  const lookupLinkedin = useCallback(async () => {
+    setLookingUp(true);
+    try {
+      const firstName = (officer.prenoms || "").split(",")[0].trim();
+      const res = await fetch(`/api/officers/${officer.representant_id}/lookup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: officer.nom,
+          company: company.denomination_sirene,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) return;
+
+      if (data.linkedin_url) {
+        setLinkedinUrl(data.linkedin_url);
+        setHeadline(data.headline || headline);
+        setCurrentPosition(data.current_position || currentPosition);
+        if (data.education?.length) setEducation(data.education);
+        if (data.experience?.length) setExperience(data.experience);
+
+        const ok = await saveData({
+          linkedin_url: data.linkedin_url,
+          headline: data.headline || headline || null,
+          current_position: data.current_position || currentPosition || null,
+          education: data.education?.length ? data.education : education,
+          experience: data.experience?.length ? data.experience : experience,
+        });
+        if (ok) setSaved(true);
+      }
+    } finally {
+      setLookingUp(false);
+    }
+  }, [officer.representant_id, officer.prenoms, officer.nom, company.denomination_sirene, saveData, headline, currentPosition, education, experience]);
 
   const generateDraft = useCallback(async () => {
     setGenerating(true);
@@ -359,15 +398,26 @@ export function OfficerProfileView({
                   LinkedIn
                 </a>
               ) : !isCompany ? (
-                <a
-                  href={linkedinSearchHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:border-gold/30 transition-colors"
+                <button
+                  onClick={lookupLinkedin}
+                  disabled={lookingUp}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[#0077B5] text-white hover:bg-[#005582] transition-colors disabled:opacity-50"
                 >
-                  <LinkedInIcon className="w-3 h-3" />
-                  Search LinkedIn
-                </a>
+                  {lookingUp ? (
+                    <>
+                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Finding...
+                    </>
+                  ) : (
+                    <>
+                      <LinkedInIcon className="w-3 h-3" />
+                      Find LinkedIn
+                    </>
+                  )}
+                </button>
               ) : null}
               {pappersUrl && (
                 <a
