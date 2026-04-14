@@ -41,20 +41,37 @@ export interface Officer {
   tone_notes: string | null;
 }
 
+export interface DateField {
+  day?: number | null;
+  month?: number | null;
+  year?: number | null;
+}
+
 export interface Education {
   school: string;
-  degree: string;
-  field: string;
-  start_year: string;
-  end_year: string;
+  degree?: string;
+  degree_name?: string;
+  field?: string;
+  field_of_study?: string;
+  start_year?: string;
+  end_year?: string;
+  starts_at?: DateField | null;
+  ends_at?: DateField | null;
+  logo_url?: string;
+  school_linkedin_profile_url?: string;
 }
 
 export interface Experience {
   company: string;
   title: string;
-  start_date: string;
-  end_date: string;
-  description: string;
+  start_date?: string;
+  end_date?: string;
+  starts_at?: DateField | null;
+  ends_at?: DateField | null;
+  description?: string;
+  location?: string;
+  logo_url?: string;
+  company_linkedin_profile_url?: string;
 }
 
 export interface OfficerProfile {

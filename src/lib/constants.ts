@@ -88,3 +88,26 @@ export function roleLabel(code: string | null): string {
   if (!code) return "Unknown";
   return PSC_ROLE_LABELS[code] ?? code;
 }
+
+export function formatDateField(d: { day?: number | null; month?: number | null; year?: number | null } | null | undefined): string {
+  if (!d || !d.year) return "";
+  if (d.month) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${months[d.month - 1]} ${d.year}`;
+  }
+  return String(d.year);
+}
+
+export function formatDateRange(
+  startsAt: { day?: number | null; month?: number | null; year?: number | null } | null | undefined,
+  endsAt: { day?: number | null; month?: number | null; year?: number | null } | null | undefined,
+  startFallback?: string,
+  endFallback?: string,
+): string {
+  const start = formatDateField(startsAt) || startFallback || "";
+  const end = formatDateField(endsAt) || endFallback || "";
+  if (!start && !end) return "";
+  if (start && !end) return `${start} - Present`;
+  if (!start && end) return `Until ${end}`;
+  return `${start} - ${end}`;
+}

@@ -1,24 +1,19 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import type { Company, Officer } from "@/lib/types";
 import { formatCurrency, employeeLabel, roleLabel } from "@/lib/constants";
 import { ScoreBadge } from "@/components/score-badge";
 import { pappersCompanyUrl, pappersDirigeantUrl, linkedinSearchUrl } from "@/lib/urls";
 
 export const dynamic = "force-dynamic";
+
+function LinkedInIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
+}
 
 export default async function CompanyDetailPage({
   params,
@@ -38,9 +33,11 @@ export default async function CompanyDetailPage({
 
   const company: Company = companyRes.data;
   const officers: Officer[] = officersRes.data ?? [];
+  const people = officers.filter((o) => o.type_de_personne !== "ENTREPRISE");
+  const companies = officers.filter((o) => o.type_de_personne === "ENTREPRISE");
 
   return (
-    <div className="space-y-6 max-w-3xl animate-slide-up">
+    <div className="space-y-6 max-w-4xl animate-slide-up">
       <Link href="/companies" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-gold transition-colors group">
         <svg className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -92,7 +89,7 @@ export default async function CompanyDetailPage({
           { label: "Revenue", value: company.chiffre_affaires },
           { label: "Operating Result", value: company.resultat_exploitation },
           { label: "Total Assets", value: company.total_actif },
-          { label: "Closing Date", value: company.fin_date_cloture || "—", raw: true },
+          { label: "Closing Date", value: company.fin_date_cloture || "\u2014", raw: true },
         ].map((item) => (
           <div key={item.label} className="rounded-lg border border-border bg-card p-4 transition-all hover:shadow-sm">
             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">{item.label}</p>
@@ -121,118 +118,105 @@ export default async function CompanyDetailPage({
         </div>
       </div>
 
-      {/* Officers */}
-      <div>
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-3">
-          People of Interest ({officers.length})
-        </p>
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Name</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Role</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground w-12">Active</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Via Holding</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground w-28">LinkedIn</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground w-24">Pappers</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {officers.map((o) => {
-                const isCompany = o.type_de_personne === "ENTREPRISE";
-                const name = isCompany
-                  ? o.entreprise_denomination
-                  : `${o.prenoms} ${o.nom}`.trim();
-                return (
-                  <TableRow key={`${o.siren}-${o.representant_id}`} className="hover:bg-muted/30">
-                    <TableCell className="py-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isCompany ? "bg-blue-500" : "bg-gold"}`} />
-                        {isCompany ? (
-                          <span className="text-sm text-foreground">{name}</span>
-                        ) : (
-                          <Link
-                            href={`/companies/${company.siren}/officers/${o.representant_id}`}
-                            className="text-sm text-foreground hover:text-gold transition-colors"
-                          >
-                            {name}
-                          </Link>
-                        )}
-                        {o.date_de_naissance && (
-                          <span className="text-xs text-muted-foreground/60 font-mono">b. {o.date_de_naissance}</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-2.5 text-xs text-muted-foreground">
-                      {roleLabel(o.role_entreprise)}
-                    </TableCell>
-                    <TableCell className="py-2.5">
-                      <span className={`inline-block w-2 h-2 rounded-full ${o.actif === "true" ? "bg-emerald-500" : "bg-border"}`} />
-                    </TableCell>
-                    <TableCell className="py-2.5">
-                      {o.via_holding_siren ? (
-                        <Collapsible>
-                          <CollapsibleTrigger className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
-                            <span>via {o.via_holding_denomination}</span>
-                            <svg className="w-3 h-3 transition-transform [[data-state=open]_&]:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <p className="text-xs text-muted-foreground mt-1 pl-3 border-l border-border">
-                              {o.via_holding_denomination} · <span className="font-mono">SIREN {o.via_holding_siren}</span>
-                            </p>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/40">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-2.5">
-                      {o.linkedin_url ? (
-                        <a href={o.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-xs text-gold hover:underline font-medium">
-                          View profile
-                        </a>
-                      ) : !isCompany && name ? (
-                        <a
-                          href={linkedinSearchUrl(o, company.denomination_sirene)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-muted-foreground hover:text-gold transition-colors"
+      {/* People of Interest */}
+      {people.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-3">
+            People of Interest ({people.length})
+          </p>
+          <div className="space-y-3">
+            {people.map((o) => {
+              const name = `${o.prenoms} ${o.nom}`.trim();
+              const pappersUrl = pappersDirigeantUrl(o);
+
+              return (
+                <div key={`${o.siren}-${o.representant_id}-${o.via_holding_siren}`} className="rounded-lg border border-border bg-card p-4 transition-all hover:shadow-sm hover:border-gold/20">
+                  <div className="flex items-start gap-4">
+                    {/* Avatar placeholder */}
+                    <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-sm font-semibold shrink-0">
+                      {(o.prenoms?.[0] || "").toUpperCase()}{(o.nom?.[0] || "").toUpperCase()}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link
+                          href={`/companies/${company.siren}/officers/${o.representant_id}`}
+                          className="text-sm font-semibold text-foreground hover:text-gold transition-colors"
                         >
-                          Search LinkedIn
-                        </a>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/40">—</span>
+                          {name}
+                        </Link>
+                        <span className="text-xs text-muted-foreground px-1.5 py-0.5 rounded bg-muted">{roleLabel(o.role_entreprise)}</span>
+                        <span className={`inline-block w-2 h-2 rounded-full ${o.actif === "true" ? "bg-emerald-500" : "bg-border"}`} title={o.actif === "true" ? "Active" : "Inactive"} />
+                      </div>
+
+                      {(o.headline || o.current_position) && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                          {o.headline || o.current_position}
+                        </p>
                       )}
-                    </TableCell>
-                    <TableCell className="py-2.5">
-                      {(() => {
-                        const url = pappersDirigeantUrl(o);
-                        return url ? (
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-gold transition-colors">
-                            Pappers
+
+                      {o.via_holding_siren && (
+                        <p className="text-xs text-muted-foreground/60 mt-1">
+                          via {o.via_holding_denomination} <span className="font-mono">({o.via_holding_siren})</span>
+                        </p>
+                      )}
+
+                      {/* Action links */}
+                      <div className="flex items-center gap-3 mt-2">
+                        {o.linkedin_url ? (
+                          <a href={o.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#0077B5] hover:underline font-medium">
+                            <LinkedInIcon className="w-3 h-3" />
+                            Profile
                           </a>
                         ) : (
-                          <span className="text-xs text-muted-foreground/40">—</span>
-                        );
-                      })()}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {officers.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                    No officers found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                          <a
+                            href={linkedinSearchUrl(o, company.denomination_sirene)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-gold transition-colors"
+                          >
+                            <LinkedInIcon className="w-3 h-3" />
+                            Search
+                          </a>
+                        )}
+                        {pappersUrl && (
+                          <a href={pappersUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-gold transition-colors">
+                            Pappers
+                          </a>
+                        )}
+                        {o.date_de_naissance && (
+                          <span className="text-xs text-muted-foreground/50 font-mono">b. {o.date_de_naissance}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Corporate entities */}
+      {companies.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-3">
+            Corporate Entities ({companies.length})
+          </p>
+          <div className="rounded-lg border border-border bg-card divide-y divide-border">
+            {companies.map((o) => (
+              <div key={`${o.siren}-${o.representant_id}-${o.via_holding_siren}`} className="px-4 py-3 flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                <span className="text-sm text-foreground">{o.entreprise_denomination}</span>
+                <span className="text-xs text-muted-foreground">{roleLabel(o.role_entreprise)}</span>
+                {o.entreprise_siren && (
+                  <span className="text-xs text-muted-foreground/50 font-mono ml-auto">{o.entreprise_siren}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Outreach Drafts */}
       {officers.some((o) => o.draft_message) && (
